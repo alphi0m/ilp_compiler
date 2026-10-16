@@ -1,0 +1,109 @@
+// Grammatica del linguaggio .al (Lark, parser LALR)
+// I terminali che iniziano con _ non compaiono nell'albero di parsing.
+
+// ---------- PROGRAMMA ----------
+start: func_decl+
+
+func_decl: _FUNC ID _LPAR params? _RPAR (_TYPERETURN type)? body _ENDFUNC
+
+params: param (_COMMA param)*
+param: ID _COLON type
+
+type: INTEGER | REAL
+
+// ---------- CORPO E ISTRUZIONI ----------
+body: (var_decl | stat)*
+
+var_decl: _VAR ID _COLON type _SEMI
+
+?stat: assign
+     | call_stat
+     | return_stat
+     | print_stat
+     | read_stat
+     | if_stat
+     | while_stat
+
+assign: ID _ASSIGN expr _SEMI
+call_stat: call _SEMI
+return_stat: _RETURN expr? _SEMI
+print_stat: _PRINT _LPAR expr _RPAR _SEMI
+read_stat: _READ _LPAR ID _RPAR _SEMI
+
+if_stat: _IF expr _THEN body (_ELSE body)? _ENDIF
+while_stat: _WHILE expr _DO body _ENDWHILE
+
+// ---------- ESPRESSIONI (dalla precedenza piu' bassa alla piu' alta) ----------
+?expr: sum
+     | sum _EQ sum -> eq
+     | sum _NE sum -> ne
+     | sum _LT sum -> lt
+     | sum _LE sum -> le
+     | sum _GT sum -> gt
+     | sum _GE sum -> ge
+
+?sum: sum _PLUS term -> add
+    | sum _MINUS term -> sub
+    | term
+
+?term: term _TIMES factor -> mul
+     | term _DIV factor -> div
+     | factor
+
+?factor: _MINUS factor -> neg
+       | atom
+
+?atom: INTEGER_CONST -> int_const
+     | REAL_CONST -> real_const
+     | STRING_CONST -> string_const
+     | ID -> var_ref
+     | call
+     | _LPAR expr _RPAR
+
+call: ID _LPAR args? _RPAR
+args: expr (_COMMA expr)*
+
+// ---------- TOKEN: PAROLE CHIAVE ----------
+_FUNC: "func"
+_ENDFUNC: "endfunc"
+_VAR: "var"
+_IF: "if"
+_THEN: "then"
+_ELSE: "else"
+_ENDIF: "endif"
+_WHILE: "while"
+_DO: "do"
+_ENDWHILE: "endwhile"
+_RETURN: "return"
+_PRINT: "print"
+_READ: "read"
+INTEGER: "integer"
+REAL: "real"
+
+// ---------- TOKEN: OPERATORI E SIMBOLI ----------
+_PLUS: "+"
+_MINUS: "-"
+_TIMES: "*"
+_DIV: "/"
+_ASSIGN: "="
+_EQ: "=="
+_NE: "!="
+_LT: "<"
+_LE: "<="
+_GT: ">"
+_GE: ">="
+_TYPERETURN: "->"
+_COLON: ":"
+_SEMI: ";"
+_COMMA: ","
+_LPAR: "("
+_RPAR: ")"
+
+// ---------- TOKEN A PATTERN ----------
+ID: /[a-zA-Z_][a-zA-Z0-9_]*/
+REAL_CONST.2: /[0-9]+\.[0-9]+/
+INTEGER_CONST: /[0-9]+/
+STRING_CONST: /"[^"\n]*"/
+
+// ---------- DA IGNORARE ----------
+%ignore /[ \t\r\n]+/
