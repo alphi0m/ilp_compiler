@@ -201,8 +201,175 @@ endfunc
 
 ## 3. Specifiche semantiche
 
-_Da completare._
+### 3.1 Tipi
+
+| Tipo | Rappresentazione | Note |
+|---|---|---|
+| `integer` | intero a 32 bit con segno | dichiarabile |
+| `real` | virgola mobile a 64 bit (double) | dichiarabile |
+| stringa | costante di testo | **non** dichiarabile: esiste solo come argomento di `print` |
+| bool | risultato di un confronto | **non** dichiarabile: usabile solo come condizione di `if` e `while` |
+
+Le costanti intere fuori dall'intervallo a 32 bit sono un errore.
+
+### 3.2 Scoping
+
+Il linguaggio ha un **unico scope per funzione**:
+
+- I nomi delle funzioni sono globali e unici. Non c'è overloading.
+- I parametri e le variabili dichiarate in una funzione appartengono allo scope di quella funzione. I blocchi di `if` e `while` **non** creano un nuovo scope.
+- Un nome non può essere dichiarato due volte nello stesso scope, né come parametro né come variabile.
+- Una variabile deve essere dichiarata **prima** dell'uso, in ordine testuale.
+- Le funzioni possono essere chiamate prima della loro definizione e possono essere ricorsive.
+- Ogni variabile è inizializzata a `0` (integer) o `0.0` (real) al momento della dichiarazione.
+- Non esistono variabili globali.
+
+### 3.3 Programma e funzioni
+
+- Deve esistere **una e una sola** funzione `main`, senza parametri e senza tipo di ritorno. L'esecuzione parte da lì.
+- Una funzione con tipo di ritorno deve avere come **ultima istruzione del corpo** un `return` con un'espressione di tipo compatibile.
+- Una funzione senza tipo di ritorno può usare solo `return;`, senza espressione.
+- I parametri sono passati per valore e possono essere modificati nel corpo della funzione, senza effetto sul chiamante.
+
+### 3.4 Compatibilità dei tipi
+
+**Promozione implicita:** un `integer` può essere usato dove è richiesto un `real`. Il contrario non è ammesso.
+
+**Operatori aritmetici** `+ - * /`
+
+| Operando sinistro | Operando destro | Risultato |
+|---|---|---|
+| integer | integer | integer |
+| integer | real | real |
+| real | integer | real |
+| real | real | real |
+
+La divisione tra due `integer` è divisione intera. Il segno meno unario ha lo stesso tipo dell'operando.
+
+**Operatori di confronto** `== != < <= > >=`
+
+| Operando sinistro | Operando destro | Risultato |
+|---|---|---|
+| integer o real | integer o real | bool |
+
+Le stringhe non si possono confrontare né usare in operazioni.
+
+### 3.5 Regole di type checking
+
+Notazione: `T(e)` indica il tipo dell'espressione `e`.
+
+- **Costanti:** `INTEGER_CONST` ha tipo integer, `REAL_CONST` ha tipo real, `STRING_CONST` ha tipo stringa.
+- **Identificatore:** SE `x` è dichiarato nello scope corrente ALLORA `T(x)` è il suo tipo, ALTRIMENTI errore "identificatore non dichiarato".
+- **Operatore aritmetico:** SE `T(e1)` e `T(e2)` sono numerici ALLORA `e1 op e2` ha il tipo dato dalla tabella 3.4, ALTRIMENTI errore di tipo.
+- **Confronto:** SE `T(e1)` e `T(e2)` sono numerici ALLORA `e1 op e2` ha tipo bool, ALTRIMENTI errore di tipo.
+- **Assegnazione** `x = e;`: SE `x` è dichiarata E (`T(x) = T(e)` OPPURE `T(x)` è real e `T(e)` è integer) ALLORA è corretta, ALTRIMENTI errore di tipo.
+- **if / while:** SE `T(condizione)` è bool E i corpi sono corretti ALLORA l'istruzione è corretta, ALTRIMENTI errore di tipo.
+- **Chiamata** `f(a1, ..., an)`: SE `f` esiste E ha `n` parametri E ogni `ai` è compatibile con il tipo del parametro i-esimo ALLORA la chiamata è corretta e ha il tipo di ritorno di `f`, ALTRIMENTI errore.
+- **Chiamata come istruzione:** ammessa per qualsiasi funzione, l'eventuale valore è scartato. Una funzione senza tipo di ritorno **non** può comparire in un'espressione.
+- **return** `return e;`: SE la funzione ha tipo di ritorno `R` E `T(e)` è compatibile con `R` ALLORA è corretto, ALTRIMENTI errore.
+- **print(e):** SE `T(e)` è integer, real o stringa ALLORA è corretto, ALTRIMENTI errore. Ogni `print` termina con un a capo.
+- **read(x):** SE `x` è dichiarata di tipo integer o real ALLORA è corretto, ALTRIMENTI errore. L'input arriva dalla tastiera.
+
+### 3.6 Errori semantici da segnalare
+
+1. Identificatore non dichiarato.
+2. Identificatore dichiarato più volte nello stesso scope.
+3. Funzione non definita, oppure `main` assente, duplicata, con parametri o con tipo di ritorno.
+4. Errore di tipo in un operatore, in un'assegnazione o in un confronto.
+5. Condizione di `if` o `while` non booleana.
+6. Numero o tipo di argomenti errato in una chiamata.
+7. `return` con espressione in una funzione senza tipo di ritorno, o senza espressione in una funzione con tipo di ritorno.
+8. Funzione con tipo di ritorno che non termina con `return`.
+9. Funzione senza tipo di ritorno usata in un'espressione.
+10. `read` su una variabile non numerica o non dichiarata.
+11. Costante intera fuori intervallo.
+
+### 3.7 Esempi semanticamente errati (sintatticamente corretti)
+
+Uso prima della dichiarazione:
+
+```
+func main()
+    x = 1;
+    var x: integer;
+endfunc
+```
+
+Assegnazione di `real` a `integer`:
+
+```
+func main()
+    var n: integer;
+    n = 2.5;
+endfunc
+```
+
+Condizione non booleana:
+
+```
+func main()
+    var n: integer;
+    while n do
+        n = n - 1;
+    endwhile
+endfunc
+```
+
+Funzione con tipo di ritorno che non termina con `return`:
+
+```
+func somma(a: integer, b: integer) -> integer
+    print(a + b);
+endfunc
+```
+
+Operazione su una stringa:
+
+```
+func main()
+    print("a" + 1);
+endfunc
+```
 
 ## 4. Esempi di programmi
 
-Vedi `examples/calcolatrice.al`.
+### 4.1 Calcolatrice
+
+Vedi `examples/calcolatrice.al`: menu di scelta, input di interi e reali, calcolo, ciclo di continuazione, tre funzioni (`dividi`, `calcola`, `main`).
+
+### 4.2 Fattoriale
+
+```
+func fattoriale(n: integer) -> integer
+    var r: integer;
+    r = 1;
+    while n > 1 do
+        r = r * n;
+        n = n - 1;
+    endwhile
+    return r;
+endfunc
+
+func main()
+    var n: integer;
+    print("Inserisci un intero:");
+    read(n);
+    print(fattoriale(n));
+endfunc
+```
+
+## 5. Scelte tecniche
+
+1. **Linguaggio di sviluppo:** Python.
+2. **Codice target:** LLVM IR, prodotto con llvmlite (senza MLIR). `integer` diventa `i32`, `real` diventa `double`.
+3. **Input/output:** tramite `printf` e `scanf` della libreria C, dichiarate nell'IR.
+4. **Metodologia:** generatore automatico di parser con Lark (LALR), con la grammatica in `src/grammatica.lark`.
+5. **Architettura:** pipeline in fasi successive: parsing, costruzione dell'AST, analisi semantica con tabella dei simboli, generazione dell'IR.
+6. **Test:** pytest, con test per ogni fase e un test end-to-end sulla calcolatrice.
+
+## 6. Punti da discutere con il docente
+
+1. L'unico scope per funzione, senza variabili globali, è adeguato?
+2. Va bene la promozione implicita da `integer` a `real` e la divisione intera tra interi?
+3. È accettabile non avere il tipo stringa dichiarabile né il tipo booleano?
+4. L'uso di `printf`/`scanf` per l'I/O nel codice generato è accettabile?
